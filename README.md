@@ -153,6 +153,28 @@ From v0.1, every code change in this repo walks through its own 5-stage pipeline
 
 ---
 
+## Origin Story
+
+I'm a PM, not an engineer. The first line of my personal `CLAUDE.md` says exactly that.
+
+I've been using Claude Code for months to prototype ideas. What drove me crazy wasn't bugs — it was Claude confidently saying "I fixed it" when it hadn't. Same conversation, same bug, three times.
+
+So I asked a dumb question: **what if we stop asking AI and start verifying AI?**
+
+Claude Rails is the answer. It went from "idea" to "v0.1 on GitHub with green CI and bilingual docs" in roughly 3 hours. The whole thing was built by Claude Code, while being constrained by Claude Rails mid-development. The tool dogfoods itself into existence.
+
+I'm not sharing this because I'm a great engineer (I'm not). I'm sharing it because the *method* works:
+
+- **Environment > Model** — don't chase a stronger AI, chase a better verification environment
+- **Physical constraints > AI promises** — run real tools, don't trust "I fixed it"
+- **Spec-first > code-first** — make AI write down what to build before building it
+
+If a non-technical PM can build a quality harness with these principles, imagine what engineers can do.
+
+**Don't take my word for it**: check the [git history](https://github.com/penguinliao/claude-rails/commits/main). Every commit message explains *why*. You can trace the entire 3-hour build, including the bugs the harness caught on itself during development.
+
+---
+
 ## FAQ
 
 **Q: Will it modify my existing Claude Code settings?**
