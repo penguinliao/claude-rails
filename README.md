@@ -8,6 +8,7 @@
 
 <sub>📦 Project brand: **Claude Rails** · Core engine & CLI: **harness** (same pattern as Ruby on Rails' `rails` gem — brand name and CLI name don't have to match)</sub>
 
+[![CI](https://github.com/penguinliao/claude-rails/actions/workflows/test.yml/badge.svg)](https://github.com/penguinliao/claude-rails/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-required-orange.svg)](https://claude.ai/download)

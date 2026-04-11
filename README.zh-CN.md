@@ -8,6 +8,7 @@
 
 <sub>📦 项目品牌名：**Claude Rails** · 核心引擎与 CLI 命令：**harness**（和 Ruby on Rails 的 `rails` gem 一样，品牌名和命令名可以不一致）</sub>
 
+[![CI](https://github.com/penguinliao/claude-rails/actions/workflows/test.yml/badge.svg)](https://github.com/penguinliao/claude-rails/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-required-orange.svg)](https://claude.ai/download)
