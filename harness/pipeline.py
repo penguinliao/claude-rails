@@ -391,7 +391,7 @@ def is_code_write_allowed(project_root: str, file_path: str = "") -> tuple[bool,
 
     # Whitelist: harness-engineering project itself is always allowed (can't lock itself out)
     harness_dir = str(Path(__file__).resolve().parent.parent)
-    if file_path and str(Path(file_path).resolve()).startswith(harness_dir):
+    if file_path and str(Path(file_path).resolve()).lower().startswith(harness_dir.lower()):
         return True, ""
 
     state = get_state(project_root)

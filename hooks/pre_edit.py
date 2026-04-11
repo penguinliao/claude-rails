@@ -54,7 +54,7 @@ def handle(ctx: HookContext) -> HookResult:
                 import pathlib as _pl
                 # Harness-engineering self-edit exemption (can't lock itself out)
                 _harness_dir = str(_pl.Path(__file__).resolve().parent.parent)
-                if str(_pl.Path(ctx.file_path).resolve()).startswith(_harness_dir):
+                if str(_pl.Path(ctx.file_path).resolve()).lower().startswith(_harness_dir.lower()):
                     pass  # Skip spec scope check for harness-engineering itself
                 else:
                     _ext = _pl.Path(ctx.file_path).suffix.lower()
