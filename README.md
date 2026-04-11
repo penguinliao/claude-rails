@@ -1,7 +1,10 @@
-# Harness Engineering
+# Claude Rails 🚂
 
-> **让 Claude Code 生成的代码准确率从 50% 提升到 80%+**
-> 为非技术 PM 和追求代码质量的开发者设计的 Claude Code 增强工具
+> **Rails for Claude Code — 给 AI 编程铺一条轨道**
+> 让 Claude Code 生成的代码准确率从 50% 提升到 80%+
+> 为非技术 PM 和追求代码质量的开发者设计
+
+<sub>📦 项目品牌名：**Claude Rails** · 核心引擎与 CLI 命令：**harness**（和 Ruby on Rails 的 `rails` gem 一样，品牌名和命令名可以不一致）</sub>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
@@ -10,7 +13,7 @@
 ## 一行命令安装
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/harness-engineering/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/penguinliao/claude-rails/main/install.sh | bash
 ```
 
 2 分钟后可用。**先看下面的"收益 vs 代价"再决定装不装。**
@@ -51,7 +54,7 @@ curl -fsSL https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/harness-engine
 
 ```bash
 # 1. 安装（一次性，2 分钟）
-curl -fsSL https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/harness-engineering/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/penguinliao/claude-rails/main/install.sh | bash
 
 # 2. 在任何项目里启用
 cd 你的项目/
@@ -201,8 +204,8 @@ cp ~/.claude/settings.json.backup.最新时间 ~/.claude/settings.json
 想参与 harness 本身的开发？
 
 ```bash
-git clone https://github.com/YOUR_GITHUB_USERNAME/harness-engineering
-cd harness-engineering
+git clone https://github.com/penguinliao/claude-rails
+cd claude-rails
 pip install -e .
 ```
 

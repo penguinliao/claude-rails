@@ -3,9 +3,9 @@ requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "harness-engineering"
+name = "claude-rails"
 version = "0.1.0"
-description = "A quality harness for Claude Code: turn AI-generated code accuracy from ~50% to 80%+ via spec-first workflow and hook-enforced quality gates"
+description = "Rails for Claude Code — spec-first AI coding with hook-enforced quality gates. Turn 50% accuracy into 80%+."
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.9"
@@ -56,10 +56,10 @@ dev = [
 harness = "harness.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/YOUR_GITHUB_USERNAME/harness-engineering"
-Repository = "https://github.com/YOUR_GITHUB_USERNAME/harness-engineering"
-Issues = "https://github.com/YOUR_GITHUB_USERNAME/harness-engineering/issues"
-Documentation = "https://github.com/YOUR_GITHUB_USERNAME/harness-engineering#readme"
+Homepage = "https://github.com/penguinliao/claude-rails"
+Repository = "https://github.com/penguinliao/claude-rails"
+Issues = "https://github.com/penguinliao/claude-rails/issues"
+Documentation = "https://github.com/penguinliao/claude-rails#readme"
 
 [tool.setuptools.packages.find]
 include = ["harness*"]

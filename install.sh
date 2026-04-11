@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Harness Engineering — 一行命令安装脚本
-# 用法: curl -fsSL https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/harness-engineering/main/install.sh | bash
+# Claude Rails — 一行命令安装脚本
+# 用法: curl -fsSL https://raw.githubusercontent.com/penguinliao/claude-rails/main/install.sh | bash
 # 本地测试: HARNESS_LOCAL_DEV=1 bash install.sh
 set -euo pipefail
 
 # ─────────────────────────────────────────────────────────
 # 配置
 # ─────────────────────────────────────────────────────────
-GITHUB_REPO="YOUR_GITHUB_USERNAME/harness-engineering"
+GITHUB_REPO="penguinliao/claude-rails"
 HARNESS_DIR="$HOME/.harness"
 BIN_DIR="$HOME/.local/bin"
 TOOLS="ruff mypy bandit detect-secrets radon pre-commit"
@@ -55,8 +55,9 @@ trap cleanup_on_failure ERR
 show_banner() {
     printf "\n"
     bold "╔════════════════════════════════════════════════════════╗"
-    bold "║              Harness Engineering                       ║"
-    bold "║  让 Claude Code 生成代码的准确率从 50% 提升到 80%+    ║"
+    bold "║              Claude Rails 🚂                           ║"
+    bold "║   Rails for Claude Code — 给 AI 编程铺一条轨道         ║"
+    bold "║  让代码准确率从 50% 提升到 80%+                        ║"
     bold "╚════════════════════════════════════════════════════════╝"
     printf "\n"
 
