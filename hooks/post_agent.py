@@ -173,30 +173,64 @@ def _filter_suggestions_by_lines(
     suggestions: list,
     changed_lines: dict[str, set[int] | None],
 ) -> list:
-    """Filter FixSuggestion list to only include issues in changed lines.
+    """Filter FixSuggestion list to only issues in Agent-modified files AND lines.
 
-    If changed_lines[file] is None (new file / no git), keep all issues for that file.
+    This is the core defense against "historical debt amplification": when Agent
+    edits file A, mypy/bandit may transitively scan imported modules B and C and
+    report existing issues there. Those must be filtered out, or every Agent call
+    gets blocked by pre-existing debt it didn't touch.
+
+    Logic:
+      - changed_lines keys are the files Agent actually modified
+      - If a suggestion's file is NOT in any changed_lines key → drop
+        (unrelated file, historical debt in a transitively-scanned module)
+      - If matched but changed_lines[path] is None (file untracked / no git) → keep
+        (fail-open: we can't tell new from old, so don't filter)
+      - If matched and s_line is in the changed set → keep
+        (issue was introduced or modified by this Agent)
+      - Otherwise → drop (issue exists in unchanged lines of a changed file — historical)
     """
-    if not changed_lines or all(v is None for v in changed_lines.values()):
-        return suggestions  # No filtering possible
+    if not changed_lines:
+        return suggestions  # Nothing to filter against
 
     filtered = []
     for s in suggestions:
         s_file = getattr(s, "file", "")
         s_line = getattr(s, "line", None)
 
-        # Find matching changed_lines entry by basename or full path
-        matched_lines = None
+        if not s_file:
+            filtered.append(s)  # Can't filter without file info — keep
+            continue
+
+        # Try to match suggestion's file to an Agent-modified file
+        matched_path: str | None = None
+        matched_lines: set[int] | None = None
+        s_basename = os.path.basename(s_file)
         for path, lines in changed_lines.items():
-            if s_file and (s_file in path or os.path.basename(path) == os.path.basename(s_file)):
+            # Match by exact equality, path containment, or basename equality
+            if s_file == path or s_file in path or path.endswith("/" + s_file):
+                matched_path = path
+                matched_lines = lines
+                break
+            if os.path.basename(path) == s_basename:
+                matched_path = path
                 matched_lines = lines
                 break
 
+        if matched_path is None:
+            # s_file is NOT an Agent-modified file → historical debt in
+            # a transitively-scanned module, drop
+            continue
+
         if matched_lines is None:
-            filtered.append(s)  # No line info or new file — keep
-        elif s_line is not None and s_line in matched_lines:
-            filtered.append(s)  # Issue is in a changed line — keep
-        # else: issue is in an unchanged line — drop (existing code issue)
+            # File matched but can't diff (untracked / no git) → fail-open, keep
+            filtered.append(s)
+            continue
+
+        if s_line is not None and s_line in matched_lines:
+            # Issue is in a line Agent actually changed → keep
+            filtered.append(s)
+        # else: changed file but issue in unchanged line → historical debt, drop
 
     return filtered
 
