@@ -1,23 +1,79 @@
 [build-system]
-requires = ["setuptools>=64"]
-build-backend = "setuptools.backends._legacy:_Backend"
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
 
 [project]
-name = "harness"
-version = "2.0.0"
-description = "Code quality verification engine for AI-generated code"
-requires-python = ">=3.9"
+name = "harness-engineering"
+version = "0.1.0"
+description = "A quality harness for Claude Code: turn AI-generated code accuracy from ~50% to 80%+ via spec-first workflow and hook-enforced quality gates"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [
+    { name = "Harness Engineering Contributors" },
+]
+keywords = [
+    "claude-code",
+    "ai-coding",
+    "code-quality",
+    "harness",
+    "spec-first",
+    "llm",
+    "static-analysis",
+    "hooks",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+]
 dependencies = [
-    "ruff",
-    "bandit",
-    "mypy",
+    "ruff>=0.6.0",
+    "mypy>=1.10",
+    "bandit>=1.7.9",
+    "detect-secrets>=1.5.0",
+    "radon>=6.0.1",
 ]
 
 [project.optional-dependencies]
-full = [
-    "detect-secrets",
-    "radon",
+dev = [
+    "pytest>=8.0",
+    "pytest-cov",
+    "shellcheck-py",
 ]
+
+[project.scripts]
+harness = "harness.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/YOUR_GITHUB_USERNAME/harness-engineering"
+Repository = "https://github.com/YOUR_GITHUB_USERNAME/harness-engineering"
+Issues = "https://github.com/YOUR_GITHUB_USERNAME/harness-engineering/issues"
+Documentation = "https://github.com/YOUR_GITHUB_USERNAME/harness-engineering#readme"
 
 [tool.setuptools.packages.find]
 include = ["harness*"]
+exclude = ["tests*", "examples*", "foundation*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "S", "UP"]
+ignore = ["E501", "S101", "S603", "S607"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
