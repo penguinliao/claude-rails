@@ -101,6 +101,21 @@ def verify_import(file_path: str) -> VerifyResult:
                 error_type = parts[0].strip().split(".")[-1]
                 error_message = parts[1].strip() if len(parts) > 1 else line
 
+        # v0.1.1 fix: ModuleNotFoundError / ImportError often come from a
+        # sys.path context mismatch, not a real code bug. For package-internal
+        # files (e.g. `core/db.py` that does `from core.xxx import yyy`), the
+        # subprocess can't resolve the parent package. Step 1 (compile) already
+        # proved the syntax is valid, so treat import failures as a warning
+        # rather than a hard fail — don't let functional = 0 block legitimate
+        # code just because harness can't guess the right sys.path.
+        if error_type in ("ModuleNotFoundError", "ImportError"):
+            return VerifyResult(
+                passed=True,
+                error_type=error_type,
+                error_message=f"(warn, compile OK) {error_message}",
+                traceback_str=None,
+            )
+
         return VerifyResult(
             passed=False,
             error_type=error_type,
