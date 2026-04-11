@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "A quality harness for Claude Code: turn AI-generated code accuracy from ~50% to 80%+ via spec-first workflow and hook-enforced quality gates"
 readme = "README.md"
 license = { text = "MIT" }
-requires-python = ">=3.10"
+requires-python = ">=3.9"
 authors = [
     { name = "Harness Engineering Contributors" },
 ]
@@ -30,6 +30,7 @@ classifiers = [
     "Operating System :: MacOS",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -66,14 +67,14 @@ exclude = ["tests*", "examples*", "foundation*"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py39"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "S", "UP"]
 ignore = ["E501", "S101", "S603", "S607"]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true
