@@ -45,7 +45,8 @@ harness-engineering/
 │   ├── hook_runner.py      # Hook 统一框架（输入解析 + fail-closed + 日志）
 │   ├── telemetry.py        # 遥测日志（append-only SQLite）
 │   ├── health.py           # 依赖健康检查（harness doctor）
-│   └── mutation_test.py    # harness 自身的突变测试
+│   ├── mutation_test.py    # harness 自身的突变测试
+│   └── skill_extractor.py  # pipeline 完成后从客观数据提取经验 skill
 │
 ├── hooks/                  # Claude Code Hook 脚本（物理控制层）
 │   ├── pre_edit.py         # 编辑前拦截：阶段检查 + spec 范围检查
@@ -100,11 +101,11 @@ SPEC(1) → DESIGN(2) → IMPLEMENT(3) → REVIEW(4) → TEST(5) → [DEPLOY(6)]
 
 | 阶段 | 谁做 | 产出 | 物理约束 |
 |------|------|------|---------|
-| SPEC | Opus | `.harness/spec.md`（AC + 文件清单） | 非此阶段不能编辑 spec.md |
+| SPEC | Opus | `spec.md` + `test_ac_*.py` + `xiaoce_brief.md` + `zhuolong_brief.md` | 非此阶段不能编辑 spec.md；SPEC 阶段可写测试脚本 |
 | DESIGN | Opus | 架构文档（可选） | — |
-| IMPLEMENT | Sonnet 子 Agent | 修改后的代码文件 | **唯一允许写代码的阶段** |
+| IMPLEMENT | Sonnet 子 Agent | 修改后的代码文件 | **唯一允许写代码的阶段**；test_*.py 和 *_brief.md 物理锁定 |
 | REVIEW | harness 自动 + 独立 Agent | check_standard 评分 ≥ 60 | harness 自己跑 ruff/mypy/bandit |
-| TEST | harness 自动执行 | `.harness/test_*.py` 全部 exit 0 | harness 用 subprocess 跑测试脚本 |
+| TEST | harness 三层门禁 | Gate1: test_*.py exit 0 / Gate2: 小测报告 / Gate3: 浊龙报告 | harness 机械执行 + 报告文件门禁 |
 
 **3 种路由**：
 - `micro [3→4→5]` — typo/样式（1-2 行改动）
@@ -117,6 +118,15 @@ SPEC(1) → DESIGN(2) → IMPLEMENT(3) → REVIEW(4) → TEST(5) → [DEPLOY(6)]
 **过期**：pipeline 超过 4 小时未活动自动失效，必须 reset + start 新 pipeline。防止旧 pipeline 被复用为新任务的通行证。
 
 **吃狗粮**：harness-engineering 自身代码也走 pipeline，无阶段豁免。spec 范围豁免仅限 harness/ 和 hooks/（避免循环依赖）。
+
+**测试认知隔离**：测试脚本在 SPEC 阶段由 Opus 编写（代码还不存在），IMPLEMENT 阶段被 pre_edit hook 物理锁定（Sonnet 碰不到）。测试基于"应该做什么"（spec），不基于"怎么实现的"（代码）。Sonnet 发现接口不合理只能写 `.harness/change_request.md` 上报，Opus 裁决是否更新。
+
+**三层 TEST 门禁**：
+1. Gate 1: harness 机械执行 test_*.py（subprocess, exit code 判生死）
+2. Gate 2: 小测白盒审计（xiaoce_brief.md 存在 → xiaoce_report.md 必须存在）
+3. Gate 3: 浊龙黑盒验收（zhuolong_brief.md 存在 → zhuolong_report.md 必须存在）
+- brief 不存在 = 对应 Gate 跳过（由 SPEC 阶段测试策略字段决定）
+- 任何 Gate 失败 → retreat → IMPLEMENT → REVIEW → TEST（最多 3 轮）
 
 ---
 
@@ -145,11 +155,11 @@ SPEC(1) → DESIGN(2) → IMPLEMENT(3) → REVIEW(4) → TEST(5) → [DEPLOY(6)]
 
 | Hook | 触发时机 | 做什么 | Fail 策略 |
 |------|---------|--------|----------|
-| pre_edit | AI 要编辑文件 | 检查 pipeline 阶段 + spec 范围 | fail-closed |
+| pre_edit | AI 要编辑文件 | 检查 pipeline 阶段 + spec 范围 + **IMPLEMENT 阶段锁定 test_*.py 和 *_brief.md** | fail-closed |
 | post_edit | AI 编辑完文件 | 快速质量扫描 + 自动修复 | fail-open |
 | pre_commit | AI 要 git commit | standard 检查 + 危险命令分类 | fail-closed |
-| post_agent | 子 Agent 完成 | 独立审查所有修改文件 | fail-open |
-| stop_check | AI 要停止 | 拦截 deflection（推卸给用户） | fail-open |
+| post_agent | 子 Agent 完成 | 独立审查所有修改文件 + **检测 change_request.md** | fail-open |
+| stop_check | AI 要停止 | 拦截 deflection + **pipeline 未完成时拦截停止** | fail-open |
 
 ---
 

@@ -26,8 +26,47 @@ def handle(ctx: HookContext) -> HookResult:
     """Check if code write is allowed in current pipeline stage."""
     from harness.pipeline import is_code_write_allowed, get_state, STAGE_NAMES
     import pathlib as _pl
+    import fnmatch
 
     fname = os.path.basename(ctx.file_path) if ctx.file_path else ""
+
+    # Early return: .harness/ special file handling
+    if ctx.file_path:
+        _fpath = _pl.Path(ctx.file_path)
+        _fname = _fpath.name
+        _state_early = get_state(ctx.project_root) if ctx.project_root else None
+        _stage_early = _state_early.current_stage if _state_early else None
+
+        # .harness/test_*.py and .harness/*_brief.md: allow in SPEC(1), block in IMPLEMENT(3)
+        _is_harness_test = (
+            fnmatch.fnmatch(_fname, "test_*.py")
+            and ".harness" in str(_fpath)
+        )
+        _is_harness_brief = (
+            fnmatch.fnmatch(_fname, "*_brief.md")
+            and ".harness" in str(_fpath)
+        )
+
+        if _is_harness_test or _is_harness_brief:
+            if _stage_early == 1:
+                # SPEC stage: allow editing test scripts and brief files
+                return HookResult(exit_code=0, message=f"[harness] {fname} OK (SPEC阶段允许编辑测试/任务书文件)")
+            if _stage_early == 3:
+                # IMPLEMENT stage: block
+                if _is_harness_test:
+                    return HookResult(
+                        exit_code=2,
+                        message="[harness] ❌ 测试脚本在 SPEC 阶段已锁定，IMPLEMENT 阶段不可修改",
+                    )
+                return HookResult(
+                    exit_code=2,
+                    message="[harness] ❌ 审计任务书在 SPEC 阶段已锁定，IMPLEMENT 阶段不可修改",
+                )
+
+        # .harness/change_request.md: always allow (Sonnet interface change channel)
+        if _fname == "change_request.md" and ".harness" in str(_fpath):
+            return HookResult(exit_code=0, message=f"[harness] {fname} OK (接口变更通道，始终放行)")
+
     allowed, reason = is_code_write_allowed(ctx.project_root, ctx.file_path)
 
     if not allowed:

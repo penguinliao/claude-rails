@@ -370,6 +370,21 @@ def handle(ctx: HookContext) -> HookResult:
         msg = f"[harness] ✅ Agent代码审查通过：{file_list} ({score}, {elapsed}, {scan_label})"
         if risk_info:
             msg += f"\n[harness] {risk_info}"
+        # Check for interface change request from Sonnet
+        change_req_path = os.path.join(ctx.project_root or os.getcwd(), ".harness", "change_request.md")
+        if os.path.isfile(change_req_path):
+            try:
+                with open(change_req_path, encoding="utf-8") as _cr_f:
+                    _cr_content = _cr_f.read().strip()
+                if _cr_content:
+                    msg += (
+                        "\n\n[harness] ⚠️ 检测到接口变更请求 (.harness/change_request.md)\n"
+                        "Sonnet 认为 spec 中的接口需要调整。请 Opus 裁决：\n"
+                        "  合理 → 更新 spec.md + 测试脚本 + 删除 change_request.md\n"
+                        "  不合理 → 删除 change_request.md，Sonnet 按原 spec 继续"
+                    )
+            except Exception:
+                pass
         return HookResult(exit_code=0, message=msg)
 
     # Failed — build structured feedback
@@ -397,6 +412,21 @@ def handle(ctx: HookContext) -> HookResult:
             msg = f"[harness] ✅ Agent代码审查通过（存量问题已过滤）：{file_list} ({score}, {elapsed})"
             if risk_info:
                 msg += f"\n[harness] {risk_info}"
+            # Check for interface change request from Sonnet
+            change_req_path = os.path.join(ctx.project_root or os.getcwd(), ".harness", "change_request.md")
+            if os.path.isfile(change_req_path):
+                try:
+                    with open(change_req_path, encoding="utf-8") as _cr_f:
+                        _cr_content = _cr_f.read().strip()
+                    if _cr_content:
+                        msg += (
+                            "\n\n[harness] ⚠️ 检测到接口变更请求 (.harness/change_request.md)\n"
+                            "Sonnet 认为 spec 中的接口需要调整。请 Opus 裁决：\n"
+                            "  合理 → 更新 spec.md + 测试脚本 + 删除 change_request.md\n"
+                            "  不合理 → 删除 change_request.md，Sonnet 按原 spec 继续"
+                        )
+                except Exception:
+                    pass
             return HookResult(exit_code=0, message=msg)
 
     # Build actionable message

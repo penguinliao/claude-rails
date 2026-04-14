@@ -83,6 +83,30 @@ def handle(ctx: HookContext) -> HookResult:
     except (json.JSONDecodeError, TypeError):
         pass
 
+    # Pipeline completion check — block stop if pipeline is not finished
+    try:
+        from harness.pipeline import get_state, STAGE_NAMES
+        state = get_state(ctx.project_root)
+        if state is not None:
+            last_stage = state.route_stages[-1] if state.route_stages else 5
+            # Check if pipeline is truly complete (last stage has PASS in history)
+            pipeline_complete = any(
+                e.stage == last_stage and e.status == "PASS"
+                for e in state.history
+            )
+            if not pipeline_complete:
+                stage_name = STAGE_NAMES.get(state.current_stage, str(state.current_stage))
+                return HookResult(
+                    exit_code=2,
+                    message=(
+                        f"[harness] ❌ Pipeline 未完成（当前 Stage {state.current_stage} {stage_name}），"
+                        f"请继续推进到 TEST 通过后再停止。\n"
+                        f"下一步：完成当前阶段后运行 python3 -m harness.pipeline advance"
+                    ),
+                )
+    except Exception:
+        pass  # fail-open: pipeline check failure should not block normal stop
+
     # Check pipeline completion and notify PM
     pipeline_msg = _notify_pm_if_pipeline_complete(ctx.project_root)
 
