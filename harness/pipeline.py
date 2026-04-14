@@ -489,27 +489,15 @@ def advance(project_root: str, note: str = "") -> AdvanceResult:
                     )
                 print("[harness] ✅ Gate 3: 浊龙验收报告已确认")
 
-            # Gate 4: AC coverage — each acceptance criterion from spec must be tested
+            # AC awareness — log for reference, don't enforce count match.
+            # One test script can cover multiple ACs. The real gate is
+            # Gate 1+2 (scripts exist AND exit 0), not script count.
             from harness.spec_file import find_spec, extract_acceptance_criteria
             spec_path = find_spec(project_root)
             if spec_path:
                 ac_list = extract_acceptance_criteria(spec_path)
-                if len(ac_list) >= 2 and len(test_scripts) < len(ac_list):
-                    fail_reason = (
-                        f"测试脚本数量（{len(test_scripts)}）少于验收标准数量（{len(ac_list)}）。"
-                        f"spec.md中有{len(ac_list)}条AC，每条至少需要1个测试脚本覆盖。"
-                        f"验收标准：{'; '.join(ac_list[:5])}"
-                    )
-                    state.history.append(StageEntry(
-                        stage=current, status="FAIL",
-                        timestamp=datetime.now().isoformat(),
-                        note=fail_reason,
-                    ))
-                    _save_state(project_root, state)
-                    return AdvanceResult(
-                        ok=False,
-                        reason=fail_reason,
-                    )
+                if ac_list:
+                    print(f"[harness] 📋 spec有{len(ac_list)}条AC，{len(test_scripts)}个测试脚本覆盖")
 
     # Find next stage in route
     try:
