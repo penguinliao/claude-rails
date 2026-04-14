@@ -462,6 +462,16 @@ def advance(project_root: str, note: str = "") -> AdvanceResult:
             stage=current, status="PASS", timestamp=now, note=note,
         ))
         _save_state(project_root, state)
+
+        # Skill extraction: learn from retreats
+        try:
+            from harness.skill_extractor import extract_skill
+            skill_path = extract_skill(project_root)
+            if skill_path:
+                print(f"[harness] 经验已沉淀: {os.path.basename(skill_path)}")
+        except Exception:
+            pass  # Skill extraction failure must not block pipeline completion
+
         return AdvanceResult(
             ok=True, new_stage=current,
             new_stage_name=STAGE_NAMES.get(current, ""),

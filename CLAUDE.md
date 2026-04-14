@@ -11,7 +11,7 @@
 **品牌**：Claude Rails 🚂
 **核心引擎 & CLI**：harness（类比 Ruby on Rails 的 `rails` 命令）
 **仓库**：https://github.com/penguinliao/claude-rails
-**版本**：v0.1.0 (MIT)
+**版本**：v0.2.0 (MIT)
 **目标用户**：使用 Claude Code 做生产项目的 PM 和开发者
 
 ---
@@ -103,8 +103,8 @@ SPEC(1) → DESIGN(2) → IMPLEMENT(3) → REVIEW(4) → TEST(5) → [DEPLOY(6)]
 | SPEC | Opus | `.harness/spec.md`（AC + 文件清单） | 非此阶段不能编辑 spec.md |
 | DESIGN | Opus | 架构文档（可选） | — |
 | IMPLEMENT | Sonnet 子 Agent | 修改后的代码文件 | **唯一允许写代码的阶段** |
-| REVIEW | 独立 Agent（认知隔离） | `.harness/review.md` | 非此阶段不能编辑 review.md |
-| TEST | 小测(白盒) + 浊龙(黑盒) | 测试报告 + 证据 | — |
+| REVIEW | harness 自动 + 独立 Agent | check_standard 评分 ≥ 60 | harness 自己跑 ruff/mypy/bandit |
+| TEST | harness 自动执行 | `.harness/test_*.py` 全部 exit 0 | harness 用 subprocess 跑测试脚本 |
 
 **3 种路由**：
 - `micro [3→4→5]` — typo/样式（1-2 行改动）
@@ -113,6 +113,10 @@ SPEC(1) → DESIGN(2) → IMPLEMENT(3) → REVIEW(4) → TEST(5) → [DEPLOY(6)]
 - 加 `-deploy` 后缀启用 Stage 6
 
 **回退**：REVIEW/TEST 发现 bug → retreat 到 IMPLEMENT → Sonnet 修 → 重走 4-5（最多 3 次循环）
+
+**过期**：pipeline 超过 4 小时未活动自动失效，必须 reset + start 新 pipeline。防止旧 pipeline 被复用为新任务的通行证。
+
+**吃狗粮**：harness-engineering 自身代码也走 pipeline，无阶段豁免。spec 范围豁免仅限 harness/ 和 hooks/（避免循环依赖）。
 
 ---
 
