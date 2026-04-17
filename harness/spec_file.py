@@ -261,6 +261,56 @@ def extract_acceptance_criteria(spec_path: str) -> list[str]:
     return criteria
 
 
+def extract_test_strategy(spec_path: str) -> dict[str, bool]:
+    """Parse the "## 测试策略" section from spec.md.
+
+    Returns a dict with keys: need_ac_script, need_xiaoce, need_zhuolong.
+    - Recognizes both full-width (：) and half-width (:) colons
+    - "需要" => True, "不需要" => False
+    - Missing section => all False (backward compat)
+    - Unreadable file => all False
+    """
+    default: dict[str, bool] = {
+        "need_ac_script": False,
+        "need_xiaoce": False,
+        "need_zhuolong": False,
+    }
+
+    try:
+        content = Path(spec_path).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return default
+
+    # Find "## 测试策略" section (up to next "## " or end of file)
+    section_match = re.search(
+        r'##\s*测试策略(.*?)(?=\n##\s|\Z)',
+        content, re.DOTALL,
+    )
+    if not section_match:
+        return default
+
+    section = section_match.group(1)
+
+    def _parse_field(line_pattern: str) -> bool:
+        """Return True if line matches need, False if not-need, False if missing."""
+        m = re.search(line_pattern + r'[：:]\s*(\S+)', section)
+        if not m:
+            return False
+        value = m.group(1)
+        # Check "不需要" first (contains "需要" as substring)
+        if "不需要" in value:
+            return False
+        if "需要" in value:
+            return True
+        return False
+
+    result = dict(default)
+    result["need_ac_script"] = _parse_field(r'验收脚本')
+    result["need_xiaoce"] = _parse_field(r'小测审计')
+    result["need_zhuolong"] = _parse_field(r'浊龙验收')
+    return result
+
+
 def spec_summary(spec_path: str) -> str:
     """One-line summary of a spec file. For logging and display."""
     result = validate_spec(spec_path)

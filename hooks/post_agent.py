@@ -236,6 +236,39 @@ def _filter_suggestions_by_lines(
 
 
 # ---------------------------------------------------------------------------
+# Project root resolution
+# ---------------------------------------------------------------------------
+
+def _resolve_project_root(ctx: HookContext, existing_files: list) -> str:
+    """Resolve harness project root with multi-tier fallback.
+
+    Priority:
+      1. ctx.project_root (set by hook_runner if available)
+      2. HARNESS_PROJECT env var (if that dir has .harness/)
+      3. walk-up from any existing_files ancestor (max 10 levels)
+      4. os.getcwd() last resort
+    """
+    if getattr(ctx, "project_root", None):
+        return ctx.project_root
+    env_root = os.environ.get("HARNESS_PROJECT")
+    if env_root and os.path.isdir(os.path.join(env_root, ".harness")):
+        return env_root
+    for f in existing_files:
+        try:
+            d = os.path.dirname(os.path.realpath(f))
+        except OSError:
+            continue
+        for _ in range(10):
+            if os.path.isdir(os.path.join(d, ".harness")):
+                return d
+            parent = os.path.dirname(d)
+            if parent == d:
+                break
+            d = parent
+    return os.getcwd()
+
+
+# ---------------------------------------------------------------------------
 # Hook handler
 # ---------------------------------------------------------------------------
 
@@ -323,7 +356,7 @@ def handle(ctx: HookContext) -> HookResult:
                              if os.path.isfile(f)
                              and (now - os.path.getmtime(f)) < 120]
         if recently_modified:
-            project_root = ctx.project_root or os.getcwd()
+            project_root = _resolve_project_root(ctx, recently_modified)
             harness_dir = os.path.join(project_root, ".harness")
             test_scripts = _glob.glob(os.path.join(harness_dir, "test_*.py"))
             py_code_files = [f for f in recently_modified if f.endswith(".py")
@@ -471,4 +504,4 @@ def handle(ctx: HookContext) -> HookResult:
 
 
 if __name__ == "__main__":
-    sys.exit(run_hook(handle, hook_type="post_agent"))
+    sys.exit(run_hook(handle, hook_type="post_agent", fail_closed=True))

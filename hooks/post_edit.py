@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-PostToolUse hook for Edit|Write — run harness check + auto-advance pipeline.
+PostToolUse hook for Edit|Write — run harness quality check on edited files.
 
 Flow:
   1. Skip non-code files (exit 0 immediately)
   2. Run quick check (ruff + bandit, <2s) for Python files
   3. Run syntax check (esbuild) for TS/JS files
   4. Run structure check for Vue files
-  5. If pass → check if pipeline should auto-advance
+  5. If pass → return OK (remind AI not to advance during IMPLEMENT)
   6. If fail → run fix loop (auto-fix + re-check, up to 3 iterations)
   7. If still fail → exit 2 with structured feedback for AI
 
@@ -24,14 +24,15 @@ from pathlib import Path
 # Add harness to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from harness.hook_runner import run_hook, HookContext, HookResult
+from harness.hook_runner import HookContext, HookResult, run_hook
 
 CODE_EXTS = {".py", ".ts", ".tsx", ".js", ".jsx", ".vue"}
 
 
 def _check_typescript(file_path: str) -> HookResult:
     """用 esbuild 做 TS/JS 语法检查（<1秒）"""
-    import subprocess, shutil
+    import shutil
+    import subprocess
     fname = Path(file_path).name
 
     esbuild = shutil.which("npx")
@@ -113,6 +114,14 @@ def handle(ctx: HookContext) -> HookResult:
                 msg += f"\n[harness] {format_risk_summary(ctx.project_root)}"
         except Exception:
             pass  # 风险分析失败不影响编辑
+        # Remind: do NOT advance during IMPLEMENT — wait for Agent to finish all edits
+        try:
+            from harness.pipeline import get_state
+            state = get_state(ctx.project_root)
+            if state and state.current_stage == 3:
+                msg += "\n[harness] ⚠️ 编辑通过，但不要现在advance——等子Agent完成所有修改后再推进"
+        except Exception:
+            pass
         return HookResult(exit_code=0, message=msg)
 
     # Failed quick check → run fix loop
@@ -137,4 +146,4 @@ def handle(ctx: HookContext) -> HookResult:
 
 
 if __name__ == "__main__":
-    sys.exit(run_hook(handle, hook_type="post_edit"))
+    sys.exit(run_hook(handle, hook_type="post_edit", fail_closed=True))

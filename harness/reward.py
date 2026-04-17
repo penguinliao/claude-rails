@@ -266,16 +266,20 @@ def score_security(files: list[str]) -> DimensionResult:
             result = _run_tool(["bandit", "-r", "-f", "json", "-q", *py_files])
             bandit_output = result.stdout.strip()
             bandit_count = 0
+            bandit_total = 0
             if bandit_output:
                 try:
                     bandit_json = _json.loads(bandit_output)
-                    for item in bandit_json.get("results", []):
+                    bandit_results = bandit_json.get("results", [])
+                    bandit_total = len(bandit_results)
+                    for item in bandit_results:
                         loc_file = item.get("filename", "")
                         loc_line = item.get("line_number", 0)
                         if _add_unique_issue(loc_file, loc_line):
                             bandit_count += 1
+                    deduplicated = bandit_total - bandit_count
                     issue_count += bandit_count
-                    issues.append(f"bandit: {bandit_count} issue(s) ({bandit_count + len(seen_locations) - issue_count} deduplicated)")
+                    issues.append(f"bandit: {bandit_count} unique issue(s) ({deduplicated} deduplicated from {bandit_total} total)")
                 except _json.JSONDecodeError:
                     # Fallback: text format
                     fallback = _run_tool(["bandit", "-r", "--format=text", "-q", *py_files])
@@ -327,8 +331,7 @@ def score_security(files: list[str]) -> DimensionResult:
 def score_secrets(files: list[str]) -> DimensionResult:
     """Run detect-secrets. Any leak = 0 points (hard gate)."""
     name = "secrets"
-    py_files = _filter_python(files)
-    if not py_files:
+    if not files:
         return DimensionResult(name=name, score=100, passed=True, details="No files to scan.")
 
     if not _tool_available("detect-secrets"):
@@ -408,7 +411,29 @@ def score_functional(files: list[str], test_cmd: str | None = None) -> Dimension
             errors.append(f"{result.error_type} in {f}: {result.error_message}")
 
     if total == 0:
-        total = 1
+        # 全部是 test/dunder 文件。如果传了 test_cmd，先跑测试；否则按 N/A 满分处理
+        if test_cmd:
+            from harness.exec_verifier import verify_tests
+            test_result = verify_tests(test_cmd, timeout=120)
+            if not test_result.passed:
+                return DimensionResult(
+                    name=name,
+                    score=0,
+                    passed=False,
+                    details=f"All files are test/dunder, but test_cmd failed: {test_result.error_type}: {test_result.error_message}",
+                )
+            return DimensionResult(
+                name=name,
+                score=100,
+                passed=True,
+                details="No importable non-test Python files, but test_cmd passed.",
+            )
+        return DimensionResult(
+            name=name,
+            score=100,
+            passed=True,
+            details="No importable non-test Python files to check (all files are test_*.py or __*.py)",
+        )
 
     import_score = int((importable / total) * 100)
 

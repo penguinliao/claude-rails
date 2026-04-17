@@ -105,7 +105,7 @@ SPEC(1) → DESIGN(2) → IMPLEMENT(3) → REVIEW(4) → TEST(5) → [DEPLOY(6)]
 | DESIGN | Opus | 架构文档（可选） | — |
 | IMPLEMENT | Sonnet 子 Agent | 修改后的代码文件 | **唯一允许写代码的阶段**；test_*.py 和 *_brief.md 物理锁定 |
 | REVIEW | harness 自动 + 独立 Agent | check_standard 评分 ≥ 60 | harness 自己跑 ruff/mypy/bandit |
-| TEST | harness 三层门禁 | Gate1: test_*.py exit 0 / Gate2: 小测报告 / Gate3: 浊龙报告 | harness 机械执行 + 报告文件门禁 |
+| TEST | harness 四层门禁 | G1: test_*.py exit 0 / G2: 小测报告 / G3: 浊龙报告 / G4: 脚本引用被测模块 | harness 机械执行 |
 
 **3 种路由**：
 - `micro [3→4→5]` — typo/样式（1-2 行改动）
@@ -151,15 +151,16 @@ SPEC(1) → DESIGN(2) → IMPLEMENT(3) → REVIEW(4) → TEST(5) → [DEPLOY(6)]
 
 ## Hook 物理控制
 
-5 个 Hook 自动执行，AI 违反会被 exit 2 硬拦截：
+6 个 Hook 自动执行，AI 违反会被 exit 2 硬拦截：
 
 | Hook | 触发时机 | 做什么 | Fail 策略 |
 |------|---------|--------|----------|
 | pre_edit | AI 要编辑文件 | 检查 pipeline 阶段 + spec 范围 + **IMPLEMENT 阶段锁定 test_*.py 和 *_brief.md** | fail-closed |
-| post_edit | AI 编辑完文件 | 快速质量扫描 + 自动修复 | fail-open |
-| pre_commit | AI 要 git commit | standard 检查 + 危险命令分类 | fail-closed |
+| post_edit | AI 编辑完文件 | 快速质量扫描 + 自动修复 + **IMPLEMENT 阶段提醒不要 advance** | fail-open |
+| pre_commit (PreToolUse:Bash) | AI 要执行 Bash | 危险命令分类 + **Bash 写代码文件拦截** + **部署前检查测试 marker** | fail-closed |
+| pre_commit (PostToolUse:Bash) | Bash 执行完毕 | **测试命令 exit 0 时写测试 marker**（/tmp 脚本不算） | fail-open |
 | post_agent | 子 Agent 完成 | 独立审查所有修改文件 + **检测 change_request.md** | fail-open |
-| stop_check | AI 要停止 | 拦截 deflection + **pipeline 未完成时拦截停止** | fail-open |
+| stop_check | AI 要停止 | 拦截 deflection + **pipeline 未完成时拦截停止** + **有 deploy marker 但无 test marker 时拦截** | fail-open |
 
 ---
 

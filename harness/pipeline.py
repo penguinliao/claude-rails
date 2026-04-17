@@ -240,10 +240,48 @@ def start(
     )
 
     _save_state(project_root, state)
+
+    # Clean up test/deploy markers
+    try:
+        import glob as _glob
+        import tempfile as _tempfile
+        for pattern in ("harness_tested_*", "harness_deployed_*"):
+            for marker in _glob.glob(os.path.join(_tempfile.gettempdir(), pattern)):
+                os.remove(marker)
+    except Exception:
+        pass
+
     return state
 
 
 _RISK_LEVELS = {"micro": 0, "small": 1, "standard": 2}
+
+
+def check_brief_requirements(project_root: str, spec_path: str) -> tuple[bool, str]:
+    """Check that test-strategy-required brief files exist.
+
+    Returns (ok, reason). ok=True if all required briefs present or no requirements.
+    """
+    from harness.spec_file import extract_test_strategy
+    strategy = extract_test_strategy(spec_path)
+    harness_dir = os.path.join(project_root, ".harness")
+    if strategy.get("need_xiaoce") and not os.path.isfile(
+        os.path.join(harness_dir, "xiaoce_brief.md")
+    ):
+        return (
+            False,
+            "测试策略标注需要小测审计，但 .harness/xiaoce_brief.md 不存在。"
+            "请在 SPEC 阶段生成该 brief 后再 advance。",
+        )
+    if strategy.get("need_zhuolong") and not os.path.isfile(
+        os.path.join(harness_dir, "zhuolong_brief.md")
+    ):
+        return (
+            False,
+            "测试策略标注需要浊龙验收，但 .harness/zhuolong_brief.md 不存在。"
+            "请在 SPEC 阶段生成该 brief 后再 advance。",
+        )
+    return (True, "")
 
 
 def advance(project_root: str, note: str = "") -> AdvanceResult:
@@ -316,6 +354,11 @@ def advance(project_root: str, note: str = "") -> AdvanceResult:
                 warnings_text = "; ".join(validation.warnings)
                 print(f"[harness] ⚠️ spec.md format warning (降级通过): {warnings_text}")
             state.spec_path = spec_path
+
+            # Stage 1 advance: 校验测试策略字段对应的 brief 文件存在
+            ok, reason = check_brief_requirements(project_root, spec_path)
+            if not ok:
+                return AdvanceResult(ok=False, reason=reason)
 
     elif current == 4:  # REVIEW stage — harness physically runs check_standard
         if state.risk_level == "micro":
@@ -652,6 +695,16 @@ def reset(project_root: str) -> None:
     path = _state_path(project_root)
     if path.is_file():
         path.unlink()
+
+    # Clean up test/deploy markers
+    try:
+        import glob as _glob
+        import tempfile as _tempfile
+        for pattern in ("harness_tested_*", "harness_deployed_*"):
+            for marker in _glob.glob(os.path.join(_tempfile.gettempdir(), pattern)):
+                os.remove(marker)
+    except Exception:
+        pass
 
 
 def skip(project_root: str, reason: str = "") -> AdvanceResult:
