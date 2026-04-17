@@ -37,3 +37,9 @@ Thumbs.db
 .idea/
 *.swp
 *~
+
+# Claude Code session state & planning artifacts
+.claude/
+findings.md
+progress.md
+task_plan.md

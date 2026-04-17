@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "claude-hh"
-version = "0.1.0"
+version = "0.3.1"
 description = "Rails for Claude Code — spec-first AI coding with hook-enforced quality gates. Turn 50% accuracy into 80%+."
 readme = "README.md"
 license = { text = "MIT" }
