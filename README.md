@@ -1,7 +1,21 @@
-# Claude H-H ⚙️
+# Claude H-H ⚙️ (v0.3.4)
+
+> ## ⚠️ Superseded by [Claude H-H v1.0](https://github.com/penguinliao/claude-hh-v1)
+>
+> This repo is **v0.3.4** (8600 lines). After A/B-testing every layer against real coding tasks, we found that only one feature — the **spec-first stage** — produced measurable accuracy lift. Everything else was zero or negative incremental value.
+>
+> **v1.0 ships only that feature, plus a hand-curated Hermes checklist. 298 lines of Python, same or better outcomes.**
+>
+> 👉 **Use [`claude-hh-v1`](https://github.com/penguinliao/claude-hh-v1) for new projects.**
+>
+> This repo is preserved as a research archive — the deletion of 96% of its own code, justified by data, is the case study.
+>
+> Full A/B experiment: [penguinliao/claude-hh-experiments](https://github.com/penguinliao/claude-hh-experiments)
+>
+> ---
 
 > **Harness + Hermes for Claude Code — quality gates that learn from mistakes**
-> Turn Claude Code's code accuracy from ~50% to 80%+
+> ~~Turn Claude Code's code accuracy from ~50% to 80%+~~ *(claim was never measured; see v1.0)*
 > Built for non-technical PMs and developers who care about quality
 
 **Language**: **English** · [简体中文](README.zh-CN.md)
