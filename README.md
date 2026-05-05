@@ -1,16 +1,32 @@
-# Claude H-H ⚙️ (v0.3.4)
+# Claude H-H ⚙️ — Research Archive (v0.3.x → v0.4.0)
 
-> ## ⚠️ Superseded by [Claude H-H v1.0](https://github.com/penguinliao/claude-hh-v1)
+> ## 📦 This repo is archived. Active development is at [claude-hh-v1](https://github.com/penguinliao/claude-hh-v1) (now **v1.1.0**).
 >
-> This repo is **v0.3.4** (8600 lines). After A/B-testing every layer against real coding tasks, we found that only one feature — the **spec-first stage** — produced measurable accuracy lift. Everything else was zero or negative incremental value.
+> ### Quick recommendation
 >
-> **v1.0 ships only that feature, plus a hand-curated Hermes checklist. 298 lines of Python, same or better outcomes.**
+> 👉 **Use [`claude-hh-v1`](https://github.com/penguinliao/claude-hh-v1) for any new project.** v1.1 has everything that worked from this repo, none of what didn't.
 >
-> 👉 **Use [`claude-hh-v1`](https://github.com/penguinliao/claude-hh-v1) for new projects.**
+> ### What's here vs. what's in v1.1
 >
-> This repo is preserved as a research archive — the deletion of 96% of its own code, justified by data, is the case study.
+> | Feature | Here (v0.3.x / v0.4.0) | [v1.1.0](https://github.com/penguinliao/claude-hh-v1) |
+> |---|---|---|
+> | Spec-first pipeline | ✅ (5 stages) | ✅ (4 stages, simpler) |
+> | Hermes implicit-expectations | ✅ | ✅ |
+> | **G4 cross-family audit** | ✅ (originated here, see v0.4.0 release) | ✅ (ported 1:1, no loss) |
+> | 21-category P0 issue library | ✅ (self-bootstrapped here) | ✅ (lives at `knowledge/antagonist_issues.md`) |
+> | Quality scoring engine, route flags, mutation testing, etc. | ✅ (8600 lines) | ❌ (A/B data showed no measurable lift) |
 >
-> Full A/B experiment: [penguinliao/claude-hh-experiments](https://github.com/penguinliao/claude-hh-experiments)
+> ### Why this archive matters
+>
+> - **v0.3.x history**: 8600-line "kitchen-sink" version. After A/B-testing every layer against real coding tasks, only **spec-first** produced measurable lift. The deletion-of-96%-of-our-own-code case study lives in [v1's `RELEASE_NOTES.md`](https://github.com/penguinliao/claude-hh-v1/blob/main/RELEASE_NOTES.md).
+> - **v0.4.0 self-bootstrap**: This repo became the **test subject for the G4 cross-family audit gate** — 18 rounds of consensus review by Claude Opus + Sonnet + DeepSeek V4 Pro found 65 distinct issues, distilled into 21 cross-project P0 categories. That output now ships **inside v1.1** as the antagonist's prior-defense knowledge.
+> - This archive remains read-only as the historical record + reproduction site for the self-bootstrap data.
+>
+> ### Links
+>
+> - Active product: [`claude-hh-v1` v1.1.0](https://github.com/penguinliao/claude-hh-v1/releases/tag/v1.1.0)
+> - v0.4.0 release (G4 first cut, here): [`claude-hh` v0.4.0](https://github.com/penguinliao/claude-hh/releases/tag/v0.4.0)
+> - A/B experiment data: [`claude-hh-experiments`](https://github.com/penguinliao/claude-hh-experiments)
 >
 > ---
 
