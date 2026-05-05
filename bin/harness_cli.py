@@ -89,14 +89,46 @@ def cmd_init(args: argparse.Namespace) -> int:
         encoding="utf-8",
     )
 
+    # 自动建 .env 模板（G4 antagonist 需要）
+    env_path = Path(cwd) / ".env"
+    if not env_path.exists():
+        env_template = (
+            "# Antagonist G4 跨家族审查 API keys（以下 key 不会进 git）\n"
+            "# 全局共享 key 也可放 ~/.harness/.env，项目级 .env 优先级更高\n"
+            "DEEPSEEK_API_KEY=\n"
+            "DEEPSEEK_MODEL=deepseek-v4-pro\n"
+            "# 可选\n"
+            "# QWEN_API_KEY=\n"
+            "# ANTHROPIC_API_KEY=  # 仅当不通过 Claude Code 订阅派 sub-agent 时需要\n"
+        )
+        env_path.write_text(env_template, encoding="utf-8")
+        env_path.chmod(0o600)
+        print(success("   ✅ 已生成 .env 模板（含 DEEPSEEK_API_KEY 占位）"))
+
+    # 自动 .gitignore 加 .env + .harness/（如需要）
+    gitignore = Path(cwd) / ".gitignore"
+    existing = gitignore.read_text(encoding="utf-8") if gitignore.exists() else ""
+    additions = []
+    if ".env" not in existing.split("\n"):
+        additions.append(".env")
+    if ".env.*" not in existing:
+        additions.append(".env.*")
+    if "!.env.example" not in existing:
+        additions.append("!.env.example")
+    if additions:
+        with open(gitignore, "a", encoding="utf-8") as f:
+            f.write("\n# Harness G4 antagonist (auto-added by harness init)\n")
+            f.write("\n".join(additions) + "\n")
+        print(success(f"   ✅ .gitignore 已加 {len(additions)} 条防 .env 进 git"))
+
+    print()
     print(success("✅ harness 已初始化！"))
     print(info(f"   项目目录: {cwd}"))
     print()
     print("   在这个项目里用 Claude Code 时会自动启用质量门禁。")
-    print("   下一步：用 Claude Code 开始一个任务，harness 会自动介入。")
-    print()
-    print(info("   如需手动启动 pipeline:"))
-    print(info('   python3 -m harness.pipeline start --route standard --desc "你的任务描述"'))
+    print("   下一步：")
+    print(info("   1. 在 .env 填入 DEEPSEEK_API_KEY（开 https://platform.deepseek.com 申请）"))
+    print(info("   2. 用 Claude Code 描述要做的功能，主 Agent 会自动驱动 5 阶段 + G4"))
     return 0
 
 
@@ -252,13 +284,94 @@ def cmd_doctor(args: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 
 def cmd_advance(args: argparse.Namespace) -> int:
+    """半自动 advance：
+
+    - 普通阶段 advance：直接调 pipeline.advance
+    - TEST(5) → DEPLOY(6)：先自动跑 antagonist run（一轮）
+      - cp 已 ≥3 → 直接 advance
+      - 本轮无 P0 + cp<3 → 提示 PM 再跑 N 次
+      - 本轮有 P0 → 自动 retreat 到 IMPLEMENT + 写 issue 报告给 Sonnet
+    """
     cwd = os.getcwd()
+
+    # 检查是否在 TEST 阶段（即将 advance 到 DEPLOY）
+    pipeline_json = Path(cwd) / ".harness" / "pipeline.json"
+    is_test_to_deploy = False
+    if pipeline_json.exists():
+        try:
+            pdata = json.loads(pipeline_json.read_text(encoding="utf-8"))
+            current = int(pdata.get("current_stage", 0))
+            route = pdata.get("route_stages", [])
+            if current == 5 and 6 in route:
+                is_test_to_deploy = True
+        except (OSError, ValueError, json.JSONDecodeError):
+            pass
+
+    # TEST → DEPLOY：先自动跑 antagonist
+    if is_test_to_deploy:
+        antag_state = Path(cwd) / ".harness" / "antagonist_state.json"
+        cp = 0
+        if antag_state.exists():
+            try:
+                cp = int(json.loads(antag_state.read_text(encoding="utf-8")).get("consecutive_pass", 0))
+            except (OSError, ValueError, json.JSONDecodeError):
+                cp = 0
+
+        if cp < 3:
+            print(info(f"🛡️  TEST→DEPLOY 自动触发 G4 antagonist 终审（当前 cp={cp}/3）..."))
+            antag_rc = subprocess.run(
+                [sys.executable, "-m", "harness.antagonist_cli", "run", "--project", cwd],
+                check=False,
+            ).returncode
+            # exit 1 = 本轮有 P0/P1 → 自动 retreat 到 IMPLEMENT
+            if antag_rc == 1:
+                print(warn("⚠️  G4 发现 P0 issue，自动 retreat 到 IMPLEMENT 让 Sonnet 修复..."))
+                subprocess.run(
+                    [sys.executable, "-m", "harness.pipeline", "retreat"],
+                    cwd=str(HARNESS_ROOT),
+                    env={**os.environ, "HARNESS_PROJECT": cwd},
+                    check=False,
+                )
+                report_dir = Path(cwd) / ".harness"
+                latest = sorted(report_dir.glob("antagonist_report_round_*.md"))
+                report_msg = f"📄 G4 报告: {latest[-1]}" if latest else ""
+                print(info(f"已 retreat 到 IMPLEMENT。{report_msg}"))
+                print(info("修完后再跑 `harness advance` 重新 G4 审查"))
+                return 1
+            # exit 4 = CONTINUE（本轮无 P0/P1 但 cp<3）→ 提示再跑
+            if antag_rc == 4:
+                print(info("本轮无 P0，cp 累计中。再跑 `harness advance` 累积到 3 轮即可 PASS"))
+                return 4
+            # exit 2 = ESCALATE / exit 3 = ERROR → 透传，不 advance
+            if antag_rc != 0:
+                print(warn(f"G4 antagonist 退出码 {antag_rc}（ESCALATE/ERROR），不 advance"))
+                return antag_rc
+
+    # 通用 advance（pipeline.py 内部还有 G4 cp>=3 兜底检查防绕过）
     result = subprocess.run(
         [sys.executable, "-m", "harness.pipeline", "advance"],
         cwd=str(HARNESS_ROOT),
         env={**os.environ, "HARNESS_PROJECT": cwd},
     )
     return result.returncode
+
+
+# ---------------------------------------------------------------------------
+# 子命令：antagonist （G4 跨家族独立审查 — Stage 6）
+# ---------------------------------------------------------------------------
+
+def cmd_antagonist(args: argparse.Namespace) -> int:
+    """转发到 harness.antagonist_cli。
+
+    用法：
+      harness antagonist run --project=<path>     # 跑一轮 antagonist 审查
+      harness antagonist reset --project=<path>   # 标所有 unfixed 为已修（PM 修完代码后）
+    """
+    sub = getattr(args, "antagonist_cmd", None)
+    project = getattr(args, "project", None) or os.getcwd()
+    sub_argv = [sub or "run", "--project", project]
+    cmd = [sys.executable, "-m", "harness.antagonist_cli", *sub_argv]
+    return subprocess.run(cmd, check=False).returncode
 
 
 # ---------------------------------------------------------------------------
@@ -451,6 +564,21 @@ def main() -> int:
         help="指定要回退到的阶段编号（不指定则自动回退上一阶段）",
     )
     p_retreat.set_defaults(func=cmd_retreat)
+
+    p_antag = subparsers.add_parser(
+        "antagonist",
+        help="G4 跨家族独立审查（3 家 LLM 共识，TEST 后的最终质量门禁）",
+    )
+    p_antag.add_argument(
+        "antagonist_cmd", nargs="?", default="run",
+        choices=["run", "reset"],
+        help="run=跑一轮审查（默认）；reset=标 unfixed 为已修（修完代码后调）",
+    )
+    p_antag.add_argument(
+        "--project", default=None,
+        help="项目根路径（默认当前目录）",
+    )
+    p_antag.set_defaults(func=cmd_antagonist)
 
     p_uninstall = subparsers.add_parser("uninstall", help="完全卸载 harness")
     p_uninstall.add_argument(

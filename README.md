@@ -81,8 +81,18 @@ harness init
 claude
 ```
 
-Then tell Claude: **"build feature X"** — Claude H-H will make it walk through 5 stages:
-`SPEC → DESIGN → IMPLEMENT → REVIEW → TEST`
+Then tell Claude: **"build feature X"** — Claude H-H will make it walk through 5 stages + G4 final gate:
+`SPEC → DESIGN → IMPLEMENT → REVIEW → TEST ─G4─→ [DEPLOY]`
+
+The **G4 Antagonist gate** is a **cross-family LLM consensus review**: 3 different model families (Claude Opus + Sonnet + DeepSeek V4 Pro) independently audit your git diff. ≥2 families must report `P0=0` for **3 consecutive rounds** before advance to DEPLOY is allowed. This catches design/security flaws that single-family review (Claude reviewing Claude) misses due to RLHF same-source blind spots.
+
+```bash
+# After TEST passes, run G4 final gate:
+harness antagonist run --project=.
+
+# After fixing issues from G4 report:
+harness antagonist reset --project=.
+```
 
 Every stage has a physical gate. Can't advance without passing. You don't need to understand the stages — you only need to:
 - **At the start**: tell Claude what to build

@@ -665,6 +665,20 @@ def advance(project_root: str, note: str = "") -> AdvanceResult:
         )
 
     next_stage = state.route_stages[current_idx + 1]
+
+    # G4 Antagonist gate: TEST(5) → DEPLOY(6) 前必须 antagonist PASS（cp >= 3）
+    # 跨家族独立审查，TEST 通过只是中间节点，G4 通过才允许部署
+    if current == 5 and next_stage == 6:
+        antag_check = _check_antagonist_gate(project_root)
+        if not antag_check[0]:
+            return AdvanceResult(
+                ok=False,
+                reason=(
+                    f"G4 Antagonist 终审未通过 — {antag_check[1]}\n"
+                    f"请跑 `harness antagonist run` 直到连续 3 轮 P0=0 (≥2 家共识) 才允许 advance 到 DEPLOY"
+                ),
+            )
+
     now = datetime.now().isoformat()
 
     # Record completion of current stage
@@ -687,6 +701,27 @@ def advance(project_root: str, note: str = "") -> AdvanceResult:
         new_stage_name=STAGE_NAMES.get(next_stage, ""),
         reason=f"Advanced to Stage {next_stage} ({STAGE_NAMES.get(next_stage, '')})",
     )
+
+
+def _check_antagonist_gate(project_root: str) -> tuple[bool, str]:
+    """G4 Antagonist 终审门禁：TEST → DEPLOY 前检查 cp >= 3。
+
+    PM 拍板 B+ 方案：连续 3 轮 ≥2 家 P0=0 即过关。
+    state 文件不存在 → 提示 PM 先跑 antagonist。
+    cp < 3 → 拦下 + 告知差几轮。
+    """
+    state_path = os.path.join(project_root, ".harness", "antagonist_state.json")
+    if not os.path.exists(state_path):
+        return False, "未找到 .harness/antagonist_state.json，G4 从未运行过"
+    try:
+        with open(state_path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError) as exc:
+        return False, f"读取 antagonist_state.json 失败: {exc}"
+    cp = int(data.get("consecutive_pass", 0))
+    if cp >= 3:
+        return True, f"G4 PASS (cp={cp}/3)"
+    return False, f"G4 cp={cp}/3 未达标，还需 {3 - cp} 轮 ≥2 家 P0=0"
 
 
 def is_code_write_allowed(project_root: str, file_path: str = "") -> tuple[bool, str]:

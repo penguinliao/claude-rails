@@ -93,10 +93,13 @@ harness-engineering/
 
 ---
 
-## 5 阶段流水线
+## 5 阶段流水线 + G4 终审 gate
 
 ```
-SPEC(1) → DESIGN(2) → IMPLEMENT(3) → REVIEW(4) → TEST(5) → [DEPLOY(6)]
+SPEC(1) → DESIGN(2) → IMPLEMENT(3) → REVIEW(4) → TEST(5) ─G4─→ [DEPLOY(6)]
+                                                          ↑
+                                            antagonist 跨家族独立审查
+                                            (≥2 家 P0=0 × 3 轮才放行)
 ```
 
 | 阶段 | 谁做 | 产出 | 物理约束 |
@@ -121,12 +124,29 @@ SPEC(1) → DESIGN(2) → IMPLEMENT(3) → REVIEW(4) → TEST(5) → [DEPLOY(6)]
 
 **测试认知隔离**：测试脚本在 SPEC 阶段由 Opus 编写（代码还不存在），IMPLEMENT 阶段被 pre_edit hook 物理锁定（Sonnet 碰不到）。测试基于"应该做什么"（spec），不基于"怎么实现的"（代码）。Sonnet 发现接口不合理只能写 `.harness/change_request.md` 上报，Opus 裁决是否更新。
 
-**三层 TEST 门禁**：
+**四层 TEST 门禁**：
 1. Gate 1: harness 机械执行 test_*.py（subprocess, exit code 判生死）
 2. Gate 2: 小测白盒审计（xiaoce_brief.md 存在 → xiaoce_report.md 必须存在）
 3. Gate 3: 浊龙黑盒验收（zhuolong_brief.md 存在 → zhuolong_report.md 必须存在）
+4. **Gate 4: Antagonist 跨家族终审**（TEST→DEPLOY 物理拦截）：3 家 LLM（Opus + Sonnet + DeepSeek V4 Pro）独立审 git diff，≥2 家 P0=0 持续 3 轮才允许 advance 到 DEPLOY
 - brief 不存在 = 对应 Gate 跳过（由 SPEC 阶段测试策略字段决定）
-- 任何 Gate 失败 → retreat → IMPLEMENT → REVIEW → TEST（最多 3 轮）
+- G4 由 pipeline.py advance 函数自动检查 `.harness/antagonist_state.json` 的 cp >= 3
+- 任何 Gate 失败 → retreat → IMPLEMENT → REVIEW → TEST → G4（最多 3 轮）
+
+**G4 用法**：
+```bash
+# TEST 通过后跑 antagonist 终审（3 家并跑约 5-8 分钟/轮）
+harness antagonist run --project=.
+
+# 修完代码后清掉 unfixed issue 标记（让 stuck 解锁）
+harness antagonist reset --project=.
+
+# 配置（项目根 .env）
+DEEPSEEK_API_KEY=sk-...    # DeepSeek V4 Pro
+QWEN_API_KEY=sk-...        # 可选，但 Qwen 实测在工程审查上质量差，不推荐
+```
+
+**G4 跨项目 issue 库**（`templates/antagonist_issue_library.md`）：自举沉淀 21 个真 P0 类别（状态机假 PASS / Prompt injection / .env RCE / JSON 解析 / 异常路径 / 跨家族去重 / severity），新项目跑 G4 时自动注入 antagonist system prompt 作为先验防御清单。
 
 ---
 
